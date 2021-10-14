@@ -36,11 +36,12 @@
 
 #define PIN_OUT         (2)        // Pin that opens something
 #define PIN_BTN_SET     (3)        // Control Button pin
-#define PIN_BTN_OPEN    (3)        // Open Button pin
+//#define PIN_BTN_OPEN    (5)        // Open Button pin
 
 #define MARK            (177)      // Just some byte number
 #define MAX_TAGS        (10)       // Maximum of tags
 #define RST_INTERVAL    (60000)    // RC522 reset interval ms
+#define OPEN_TIME       (250)      // ms
 
 MFRC522 mfrc522(PIN_SS, PIN_RST);  // Create MFRC522 instance
 
@@ -144,7 +145,7 @@ void accessGranted(uint32_t uid) {
       Serial.println();
     #endif
     digitalWrite(PIN_OUT, HIGH);
-    delay(100);
+    delay(OPEN_TIME);
     digitalWrite(PIN_OUT, LOW);
 }
 
@@ -194,6 +195,11 @@ void setup() {
     pinMode(_DIMM_PIN_, OUTPUT); // LED
     digitalWrite(_DIMM_PIN_, LOW);
   #endif
+
+  #ifdef PIN_BTN_OPEN
+    pinMode(PIN_BTN_OPEN, INPUT);
+    digitalWrite(PIN_BTN_OPEN, LOW);
+  #endif
   
   pinMode(PIN_BTN_SET, INPUT);
   digitalWrite(PIN_BTN_SET, LOW);
@@ -219,6 +225,16 @@ void loop() {
   static uint32_t last_uid=0;
   uint32_t uid;
   int button;
+
+  #ifdef PIN_BTN_OPEN
+    static int obut=0;
+    int but;
+    but = digitalRead(PIN_BTN_OPEN);
+    if (but==1 && obut==0) {
+      accessGranted(0);
+    }
+    obut=but;
+  #endif
 
   button = digitalRead(PIN_BTN_SET);
   if (mfrc522.PICC_IsNewCardPresent()) {
