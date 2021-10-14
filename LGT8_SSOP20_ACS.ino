@@ -40,6 +40,7 @@
 
 #define MARK            (177)      // Just some byte number
 #define MAX_TAGS        (10)       // Maximum of tags
+#define RST_INTERVAL    (60000)    // RC522 reset interval ms
 
 MFRC522 mfrc522(PIN_SS, PIN_RST);  // Create MFRC522 instance
 
@@ -52,7 +53,7 @@ uint8_t  last_record;
 void genTags() {
   last_record = 0;
   EEPROM.write(0, MARK); // JUST mark
-  EEPROM.write(1, last_record); // last record index
+  EEPROM.write(1, last_record); // oldest record index
   // fill nulls
   for (int8_t i = 0; i < MAX_TAGS*4; i++) {
       tags[i] = 0;
@@ -124,6 +125,15 @@ void processTag(uint32_t uid){
     EEPROM.write(2+i*4+1, buf[1]);
     EEPROM.write(2+i*4+2, buf[2]);
     EEPROM.write(2+i*4+3, buf[3]);
+}
+
+void resetRC522() {
+    digitalWrite(PIN_RST, HIGH);
+    delay(4);
+    digitalWrite(PIN_RST, LOW);
+    delay(4);
+    mfrc522.PCD_Init();
+    delay(4);  
 }
 
 // What we do if Access Granted
@@ -233,17 +243,12 @@ void loop() {
         last_uid = uid;
     }
   }
-/*
-  if ((millis()-rst_time) > 60000) {
+
+  if ((millis()-rst_time) > RST_INTERVAL) {
     rst_time = millis();
-    digitalWrite(PIN_RST, HIGH);
-    delay(4);
-    digitalWrite(PIN_RST, LOW);
-    delay(4);
-    mfrc522.PCD_Init();
-    delay(4);
+    resetRC522();
   }
-  */
+  
   // Read commands
   #ifdef _SERIAL_CONTROL_
     //static String cmd="";
